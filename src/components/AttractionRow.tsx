@@ -60,7 +60,7 @@ export function AttractionRow({
       style={outerStyle}
       {...outerProps}
       className={`flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0 ${
-        sortable ? 'touch-none select-none' : ''
+        sortable ? 'select-none' : ''
       } ${isDragging ? 'bg-wdw-line/40 shadow-lg ring-1 ring-wdw-accent/40' : ''}`}
     >
       {sortable && (

@@ -247,12 +247,13 @@ function StarredView({
   onToggleVisited,
   onReorder,
 }: StarredViewProps) {
-  // Long-press on touch (250 ms) starts a drag; quick taps still fire the
-  // star / visited buttons because dnd-kit only activates after the delay.
+  // Long-press on touch (600 ms) starts a drag; quick taps and scroll
+  // gestures still work because the row no longer claims touch-action, and
+  // any movement above the tolerance during the delay cancels activation.
   // Pointer sensor (mouse / trackpad) needs the cursor to move 8 px first.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 600, tolerance: 8 } }),
   );
 
   const ids = items.map((i) => String(i.ride.id));
@@ -280,7 +281,7 @@ function StarredView({
         <span className="text-sm font-semibold uppercase tracking-wide text-wdw-mute">
           Your Plan
         </span>
-        <span className="text-xs text-wdw-mute">{items.length} · long-press a row to drag</span>
+        <span className="text-xs text-wdw-mute">{items.length} · press &amp; hold to drag</span>
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
