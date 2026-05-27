@@ -3,6 +3,7 @@ import { ParkSwitcher } from './components/ParkSwitcher';
 import { FilterBar, type Filter } from './components/FilterBar';
 import { LandSection } from './components/LandSection';
 import { SearchBar } from './components/SearchBar';
+import { AttractionRow } from './components/AttractionRow';
 import { useLocalStorageSet, useLocalStorageString } from './hooks/useLocalStorageSet';
 import { useLiveData } from './hooks/useLiveData';
 import { DEFAULT_PARK_ID, WDW_PARKS, getPark } from './parks';
@@ -29,7 +30,6 @@ function applyFilters(
         if (filters.has('unvisited') && visited(r.id)) return false;
         if (filters.has('open')) {
           const info = getInfo(r.name);
-          // Only hide if we know it's closed. Unknown stays visible.
           if (info && info.status !== 'OPERATING' && !info.showtimes?.length) return false;
         }
         return true;
@@ -41,6 +41,20 @@ function applyFilters(
 function formatTime(d: Date | null): string {
   if (!d) return '—';
   return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function passesNonStarredFilters(
+  ride: Ride,
+  filters: Set<Filter>,
+  visited: (id: number) => boolean,
+  getInfo: (name: string) => LiveInfo | undefined,
+): boolean {
+  if (filters.has('unvisited') && visited(ride.id)) return false;
+  if (filters.has('open')) {
+    const info = getInfo(ride.name);
+    if (info && info.status !== 'OPERATING' && !info.showtimes?.length) return false;
+  }
+  return true;
 }
 
 export default function App() {
@@ -73,13 +87,40 @@ export default function App() {
   );
 
   const lands = useMemo(() => getAttractions(parkId), [parkId]);
+
+  const normalizedQuery = normalize(query);
+  const isStarredView = filters.has('starred');
+
+  // --- Flat list of starred rides for the starred view ---
+  // Walks the user's saved star order, keeps only rides in the current park,
+  // applies the non-starred filters and search, and pairs each ride with its
+  // land name so the row can show its location.
+  const starredItems = useMemo<{ ride: Ride; landName: string }[]>(() => {
+    if (!isStarredView) return [];
+    const rideById = new Map<number, { ride: Ride; landName: string }>();
+    for (const land of lands) {
+      for (const ride of land.rides) rideById.set(ride.id, { ride, landName: land.name });
+    }
+    const result: { ride: Ride; landName: string }[] = [];
+    for (const idStr of starred.list) {
+      const id = Number(idStr);
+      const entry = rideById.get(id);
+      if (!entry) continue;
+      if (!passesNonStarredFilters(entry.ride, filters, visited.has, getInfo)) continue;
+      if (normalizedQuery && !normalize(entry.ride.name).includes(normalizedQuery)) continue;
+      result.push(entry);
+    }
+    return result;
+  }, [isStarredView, starred.list, lands, filters, visited, getInfo, normalizedQuery]);
+
+  // --- Land sections for the normal (non-starred) view ---
   const filteredLands = useMemo(
     () => applyFilters(lands, filters, starred.has, visited.has, getInfo),
     [lands, filters, starred, visited, getInfo],
   );
 
-  const normalizedQuery = normalize(query);
   const sectionsToRender = useMemo<Land[]>(() => {
+    if (isStarredView) return []; // not used in starred view
     if (!normalizedQuery) return filteredLands;
 
     const matches: Ride[] = [];
@@ -99,9 +140,8 @@ export default function App() {
       name: `Matches (${matches.length})`,
       rides: matches,
     };
-
     return matches.length > 0 ? [matchesSection, ...remainder] : remainder;
-  }, [filteredLands, normalizedQuery]);
+  }, [isStarredView, filteredLands, normalizedQuery]);
 
   const hasLiveData = byName.size > 0;
 
@@ -136,28 +176,96 @@ export default function App() {
       </header>
 
       <main className="px-3 pb-8">
-        {sectionsToRender.length === 0 && (
-          <div className="mt-6 text-center text-sm text-wdw-mute">
-            {normalizedQuery ? 'No attractions match your search.' : 'No attractions match your filters.'}
-          </div>
-        )}
-
-        {sectionsToRender.map((land) => (
-          <LandSection
-            key={land.id}
-            land={land}
-            isStarred={starred.has}
-            isVisited={visited.has}
+        {isStarredView ? (
+          <StarredView
+            items={starredItems}
+            visited={visited.has}
             getInfo={getInfo}
             onToggleStar={starred.toggle}
             onToggleVisited={visited.toggle}
+            onSwap={starred.swap}
           />
-        ))}
+        ) : (
+          <>
+            {sectionsToRender.length === 0 && (
+              <div className="mt-6 text-center text-sm text-wdw-mute">
+                {normalizedQuery ? 'No attractions match your search.' : 'No attractions match your filters.'}
+              </div>
+            )}
+            {sectionsToRender.map((land) => (
+              <LandSection
+                key={land.id}
+                land={land}
+                isStarred={starred.has}
+                isVisited={visited.has}
+                getInfo={getInfo}
+                onToggleStar={starred.toggle}
+                onToggleVisited={visited.toggle}
+              />
+            ))}
+          </>
+        )}
 
         <p className="mt-4 text-center text-[11px] text-wdw-mute">
           {starred.size} starred · {visited.size} visited
         </p>
       </main>
     </div>
+  );
+}
+
+interface StarredViewProps {
+  items: { ride: Ride; landName: string }[];
+  visited: (id: number) => boolean;
+  getInfo: (name: string) => LiveInfo | undefined;
+  onToggleStar: (id: number) => void;
+  onToggleVisited: (id: number) => void;
+  onSwap: (a: string | number, b: string | number) => void;
+}
+
+function StarredView({
+  items,
+  visited,
+  getInfo,
+  onToggleStar,
+  onToggleVisited,
+  onSwap,
+}: StarredViewProps) {
+  if (items.length === 0) {
+    return (
+      <div className="mt-6 text-center text-sm text-wdw-mute">
+        No starred attractions in this park yet. Tap ☆ on any row to add one.
+      </div>
+    );
+  }
+  return (
+    <section className="mb-3 overflow-hidden rounded-xl bg-wdw-card ring-1 ring-wdw-line/60">
+      <div className="flex items-center justify-between px-3 py-2">
+        <span className="text-sm font-semibold uppercase tracking-wide text-wdw-mute">
+          Your Plan
+        </span>
+        <span className="text-xs text-wdw-mute">{items.length} · use ▲▼ to reorder</span>
+      </div>
+      <ul>
+        {items.map((item, i) => {
+          const prev = items[i - 1]?.ride.id;
+          const next = items[i + 1]?.ride.id;
+          return (
+            <AttractionRow
+              key={item.ride.id}
+              ride={item.ride}
+              starred={true}
+              visited={visited(item.ride.id)}
+              info={getInfo(item.ride.name)}
+              landName={item.landName}
+              onMoveUp={prev !== undefined ? () => onSwap(item.ride.id, prev) : undefined}
+              onMoveDown={next !== undefined ? () => onSwap(item.ride.id, next) : undefined}
+              onToggleStar={() => onToggleStar(item.ride.id)}
+              onToggleVisited={() => onToggleVisited(item.ride.id)}
+            />
+          );
+        })}
+      </ul>
+    </section>
   );
 }

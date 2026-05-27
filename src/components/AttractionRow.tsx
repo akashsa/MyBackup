@@ -6,6 +6,12 @@ interface Props {
   starred: boolean;
   visited: boolean;
   info?: LiveInfo;
+  // When set, shown as small caption under the ride name. Useful in flat
+  // views (e.g. starred mode) where the parent land header is not visible.
+  landName?: string;
+  // When defined, render an up / down arrow. Disabled state if undefined.
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   onToggleStar: () => void;
   onToggleVisited: () => void;
 }
@@ -30,14 +36,16 @@ export function AttractionRow({
   starred,
   visited,
   info,
+  landName,
+  onMoveUp,
+  onMoveDown,
   onToggleStar,
   onToggleVisited,
 }: Props) {
-  // Fall back to a static status marker (e.g. known-closed for refurb) when the
-  // live API has nothing for this ride. The API always wins when it has data.
   const effectiveInfo: LiveInfo | undefined =
     info ?? (ride.staticStatus ? { status: ride.staticStatus } : undefined);
   const showLine = showtimesLine(effectiveInfo, Date.now());
+  const showReorder = onMoveUp !== undefined || onMoveDown !== undefined;
 
   return (
     <li className="flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0">
@@ -65,6 +73,11 @@ export function AttractionRow({
         >
           {ride.name}
         </p>
+        {landName && (
+          <p className="mt-0.5 truncate text-[10px] uppercase tracking-wide text-wdw-mute">
+            {landName}
+          </p>
+        )}
         {showLine && (
           <p
             className={`mt-0.5 truncate text-[11px] ${
@@ -77,6 +90,29 @@ export function AttractionRow({
       </button>
 
       {effectiveInfo && <LiveBadge info={effectiveInfo} />}
+
+      {showReorder && (
+        <div className="flex flex-col">
+          <button
+            type="button"
+            aria-label="Move up"
+            onClick={onMoveUp}
+            disabled={!onMoveUp}
+            className="flex h-5 w-7 items-center justify-center rounded text-xs text-wdw-mute hover:bg-white/5 active:bg-white/10 disabled:opacity-30"
+          >
+            ▲
+          </button>
+          <button
+            type="button"
+            aria-label="Move down"
+            onClick={onMoveDown}
+            disabled={!onMoveDown}
+            className="flex h-5 w-7 items-center justify-center rounded text-xs text-wdw-mute hover:bg-white/5 active:bg-white/10 disabled:opacity-30"
+          >
+            ▼
+          </button>
+        </div>
+      )}
     </li>
   );
 }

@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-function read(key: string): Set<string> {
+function read(key: string): string[] {
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) return new Set();
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? new Set(parsed.map(String)) : new Set();
+    return Array.isArray(parsed) ? parsed.map(String) : [];
   } catch {
-    return new Set();
+    return [];
   }
 }
 
@@ -16,41 +16,59 @@ export interface LocalStorageSet {
   toggle: (id: string | number) => void;
   clear: () => void;
   size: number;
+  // Ordered list of IDs. For starred items this order is the user's
+  // preference for visit priority and is preserved across renders.
+  list: string[];
+  // Swap two IDs' positions in the ordered list. No-op if either is missing.
+  swap: (a: string | number, b: string | number) => void;
 }
 
 export function useLocalStorageSet(key: string): LocalStorageSet {
-  const [set, setSet] = useState<Set<string>>(() => read(key));
+  const [list, setList] = useState<string[]>(() => read(key));
 
   useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify([...set]));
+      localStorage.setItem(key, JSON.stringify(list));
     } catch {
-      // Quota exceeded or storage unavailable — ignore.
+      // ignore quota / disabled storage
     }
-  }, [key, set]);
+  }, [key, list]);
 
-  // Sync across tabs.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === key) setSet(read(key));
+      if (e.key === key) setList(read(key));
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, [key]);
 
+  const set = useMemo(() => new Set(list), [list]);
+
   const has = useCallback((id: string | number) => set.has(String(id)), [set]);
+
   const toggle = useCallback((id: string | number) => {
-    setSet((prev) => {
-      const next = new Set(prev);
-      const k = String(id);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
+    const k = String(id);
+    setList((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  }, []);
+
+  const clear = useCallback(() => setList([]), []);
+
+  const swap = useCallback((a: string | number, b: string | number) => {
+    const ak = String(a);
+    const bk = String(b);
+    if (ak === bk) return;
+    setList((prev) => {
+      const ai = prev.indexOf(ak);
+      const bi = prev.indexOf(bk);
+      if (ai === -1 || bi === -1) return prev;
+      const next = [...prev];
+      next[ai] = bk;
+      next[bi] = ak;
       return next;
     });
   }, []);
-  const clear = useCallback(() => setSet(new Set()), []);
 
-  return { has, toggle, clear, size: set.size };
+  return { has, toggle, clear, size: list.length, list, swap };
 }
 
 export function useLocalStorageString(key: string, fallback: string): [string, (v: string) => void] {
