@@ -1,14 +1,23 @@
-import type { Ride } from '../types';
+import type { Ride, WaitInfo } from '../types';
+import { WaitBadge } from './WaitBadge';
 
 interface Props {
   ride: Ride;
   starred: boolean;
   visited: boolean;
+  waitInfo?: WaitInfo;
   onToggleStar: () => void;
   onToggleVisited: () => void;
 }
 
-export function AttractionRow({ ride, starred, visited, onToggleStar, onToggleVisited }: Props) {
+export function AttractionRow({
+  ride,
+  starred,
+  visited,
+  waitInfo,
+  onToggleStar,
+  onToggleVisited,
+}: Props) {
   return (
     <li className="flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0">
       <button
@@ -37,14 +46,7 @@ export function AttractionRow({ ride, starred, visited, onToggleStar, onToggleVi
         </p>
       </button>
 
-      <span
-        aria-hidden="true"
-        className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${
-          visited ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-600'
-        }`}
-      >
-        ✓
-      </span>
+      {waitInfo && <WaitBadge info={waitInfo} />}
     </li>
   );
 }

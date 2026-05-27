@@ -1,24 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ParkSwitcher } from './components/ParkSwitcher';
 import { FilterBar, type Filter } from './components/FilterBar';
 import { LandSection } from './components/LandSection';
 import { SearchBar } from './components/SearchBar';
 import { useLocalStorageSet, useLocalStorageString } from './hooks/useLocalStorageSet';
+import { useWaitTimes } from './hooks/useWaitTimes';
 import { DEFAULT_PARK_ID, WDW_PARKS } from './parks';
 import { getAttractions } from './data/wdwAttractions';
-import type { Land, Ride } from './types';
+import { lookupWait, type WaitMap } from './api/queueTimes';
+import { normalize } from './utils/normalize';
+import type { Land, Ride, WaitInfo } from './types';
 
 const MATCHES_LAND_ID = -100;
-
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
 
 function applyFilters(
   lands: Land[],
   filters: Set<Filter>,
   starred: (id: number) => boolean,
   visited: (id: number) => boolean,
+  getWait: (name: string) => WaitInfo | undefined,
 ): Land[] {
   if (filters.size === 0) return lands;
   return lands
@@ -27,10 +27,19 @@ function applyFilters(
       rides: land.rides.filter((r) => {
         if (filters.has('starred') && !starred(r.id)) return false;
         if (filters.has('unvisited') && visited(r.id)) return false;
+        if (filters.has('open')) {
+          const info = getWait(r.name);
+          if (info && !info.is_open) return false;
+        }
         return true;
       }),
     }))
     .filter((l) => l.rides.length > 0);
+}
+
+function formatTime(d: Date | null): string {
+  if (!d) return '—';
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 export default function App() {
@@ -55,10 +64,16 @@ export default function App() {
     });
   };
 
+  const { byName, error, lastUpdated, loading, refresh } = useWaitTimes(parkId);
+  const getWait = useCallback(
+    (name: string) => lookupWait(name, byName as WaitMap),
+    [byName],
+  );
+
   const lands = useMemo(() => getAttractions(parkId), [parkId]);
   const filteredLands = useMemo(
-    () => applyFilters(lands, filters, starred.has, visited.has),
-    [lands, filters, starred, visited],
+    () => applyFilters(lands, filters, starred.has, visited.has, getWait),
+    [lands, filters, starred, visited, getWait],
   );
 
   const normalizedQuery = normalize(query);
@@ -87,13 +102,25 @@ export default function App() {
   }, [filteredLands, normalizedQuery]);
 
   const currentPark = WDW_PARKS.find((p) => p.id === parkId);
+  const hasWaitData = byName.size > 0;
 
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col">
       <header className="sticky top-0 z-10 bg-wdw-bg/95 px-3 pb-3 pt-3 backdrop-blur">
-        <h1 className="mb-3 text-lg font-bold tracking-tight">
-          {currentPark?.name ?? 'WDW Attractions'}
-        </h1>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h1 className="truncate text-lg font-bold tracking-tight">
+            {currentPark?.name ?? 'WDW Attractions'}
+          </h1>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={loading}
+            className="shrink-0 rounded-md px-2 py-1 text-xs text-wdw-mute hover:text-wdw-ink disabled:opacity-50"
+            title="Refresh wait times"
+          >
+            {loading ? 'Refreshing…' : `${hasWaitData ? formatTime(lastUpdated) : 'Wait times'} ↻`}
+          </button>
+        </div>
         <ParkSwitcher selectedId={parkId} onSelect={setParkId} />
         <div className="mt-3">
           <SearchBar value={query} onChange={setQuery} />
@@ -101,6 +128,11 @@ export default function App() {
         <div className="mt-3">
           <FilterBar filters={filters} onToggle={toggleFilter} />
         </div>
+        {error && !hasWaitData && (
+          <div className="mt-3 rounded-md bg-amber-500/15 px-3 py-2 text-xs text-amber-200 ring-1 ring-amber-400/30">
+            Couldn't load live wait times — showing attractions without them.
+          </div>
+        )}
       </header>
 
       <main className="px-3 pb-8">
@@ -116,6 +148,7 @@ export default function App() {
             land={land}
             isStarred={starred.has}
             isVisited={visited.has}
+            getWait={getWait}
             onToggleStar={starred.toggle}
             onToggleVisited={visited.toggle}
           />

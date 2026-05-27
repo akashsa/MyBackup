@@ -8,3 +8,8 @@ export interface Land {
   name: string;
   rides: Ride[];
 }
+
+export interface WaitInfo {
+  wait_time: number;
+  is_open: boolean;
+}
