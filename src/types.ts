@@ -1,6 +1,9 @@
 export interface Ride {
   id: number;
   name: string;
+  // Used for rides we know are closed for refurbishment / permanently when the
+  // live API doesn't return info for them. Ignored if the API does return info.
+  staticStatus?: 'REFURBISHMENT' | 'CLOSED';
 }
 
 export interface Land {

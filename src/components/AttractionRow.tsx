@@ -33,7 +33,11 @@ export function AttractionRow({
   onToggleStar,
   onToggleVisited,
 }: Props) {
-  const showLine = showtimesLine(info, Date.now());
+  // Fall back to a static status marker (e.g. known-closed for refurb) when the
+  // live API has nothing for this ride. The API always wins when it has data.
+  const effectiveInfo: LiveInfo | undefined =
+    info ?? (ride.staticStatus ? { status: ride.staticStatus } : undefined);
+  const showLine = showtimesLine(effectiveInfo, Date.now());
 
   return (
     <li className="flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0">
@@ -72,7 +76,7 @@ export function AttractionRow({
         )}
       </button>
 
-      {info && <LiveBadge info={info} />}
+      {effectiveInfo && <LiveBadge info={effectiveInfo} />}
     </li>
   );
 }
