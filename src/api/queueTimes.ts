@@ -14,9 +14,17 @@ interface RawResponse {
 
 export type WaitMap = Map<string, WaitInfo>;
 
+// Public CORS proxy. queue-times.com claims to send Access-Control-Allow-Origin
+// but the request fails from GitHub Pages in practice (likely Safari's strict
+// CORS handling). Routing through allorigins makes the response same-origin from
+// the browser's perspective. If allorigins gets flaky, swap to a Cloudflare
+// Worker we control.
+const PROXY = 'https://api.allorigins.win/raw?url=';
+
 export async function fetchWaitMap(parkId: number, signal?: AbortSignal): Promise<WaitMap> {
-  const res = await fetch(`https://queue-times.com/parks/${parkId}/queue_times.json`, { signal });
-  if (!res.ok) throw new Error(`queue-times responded ${res.status}`);
+  const target = `https://queue-times.com/parks/${parkId}/queue_times.json`;
+  const res = await fetch(`${PROXY}${encodeURIComponent(target)}`, { signal });
+  if (!res.ok) throw new Error(`proxy responded ${res.status}`);
   const json = (await res.json()) as RawResponse;
   const map: WaitMap = new Map();
   const ingest = (r: RawRide) => {

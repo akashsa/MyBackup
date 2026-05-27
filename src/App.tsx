@@ -130,7 +130,8 @@ export default function App() {
         </div>
         {error && !hasWaitData && (
           <div className="mt-3 rounded-md bg-amber-500/15 px-3 py-2 text-xs text-amber-200 ring-1 ring-amber-400/30">
-            Couldn't load live wait times — showing attractions without them.
+            <p>Couldn't load live wait times — showing attractions without them.</p>
+            <p className="mt-1 font-mono text-[10px] text-amber-200/70 break-all">{error}</p>
           </div>
         )}
       </header>
