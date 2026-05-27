@@ -1,3 +1,4 @@
+import type { CSSProperties, HTMLAttributes, Ref } from 'react';
 import type { LiveInfo, Ride } from '../types';
 import { LiveBadge } from './LiveBadge';
 
@@ -9,9 +10,13 @@ interface Props {
   // When set, shown as small caption under the ride name. Useful in flat
   // views (e.g. starred mode) where the parent land header is not visible.
   landName?: string;
-  // When defined, render an up / down arrow. Disabled state if undefined.
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
+  // Drag-and-drop integration. The caller can pass dnd-kit's setNodeRef,
+  // transform style, and combined attributes + listeners to make this row
+  // sortable without leaking dnd-kit types into the row.
+  outerRef?: Ref<HTMLLIElement>;
+  outerStyle?: CSSProperties;
+  outerProps?: HTMLAttributes<HTMLLIElement>;
+  isDragging?: boolean;
   onToggleStar: () => void;
   onToggleVisited: () => void;
 }
@@ -37,18 +42,38 @@ export function AttractionRow({
   visited,
   info,
   landName,
-  onMoveUp,
-  onMoveDown,
+  outerRef,
+  outerStyle,
+  outerProps,
+  isDragging,
   onToggleStar,
   onToggleVisited,
 }: Props) {
   const effectiveInfo: LiveInfo | undefined =
     info ?? (ride.staticStatus ? { status: ride.staticStatus } : undefined);
   const showLine = showtimesLine(effectiveInfo, Date.now());
-  const showReorder = onMoveUp !== undefined || onMoveDown !== undefined;
+  const sortable = outerRef !== undefined || outerProps !== undefined;
 
   return (
-    <li className="flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0">
+    <li
+      ref={outerRef}
+      style={outerStyle}
+      {...outerProps}
+      className={`flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0 ${
+        sortable ? 'touch-none select-none' : ''
+      } ${isDragging ? 'bg-wdw-line/40 shadow-lg ring-1 ring-wdw-accent/40' : ''}`}
+    >
+      {sortable && (
+        <span
+          aria-hidden="true"
+          className="flex h-9 w-5 shrink-0 flex-col items-center justify-center text-wdw-mute"
+          title="Drag to reorder"
+        >
+          <span className="leading-none">⋮</span>
+          <span className="leading-none">⋮</span>
+        </span>
+      )}
+
       <button
         type="button"
         aria-label={starred ? 'Unstar attraction' : 'Star attraction'}
@@ -90,29 +115,6 @@ export function AttractionRow({
       </button>
 
       {effectiveInfo && <LiveBadge info={effectiveInfo} />}
-
-      {showReorder && (
-        <div className="flex flex-col">
-          <button
-            type="button"
-            aria-label="Move up"
-            onClick={onMoveUp}
-            disabled={!onMoveUp}
-            className="flex h-5 w-7 items-center justify-center rounded text-xs text-wdw-mute hover:bg-white/5 active:bg-white/10 disabled:opacity-30"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            aria-label="Move down"
-            onClick={onMoveDown}
-            disabled={!onMoveDown}
-            className="flex h-5 w-7 items-center justify-center rounded text-xs text-wdw-mute hover:bg-white/5 active:bg-white/10 disabled:opacity-30"
-          >
-            ▼
-          </button>
-        </div>
-      )}
     </li>
   );
 }

@@ -1,4 +1,20 @@
 import { useCallback, useMemo, useState } from 'react';
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { ParkSwitcher } from './components/ParkSwitcher';
 import { FilterBar, type Filter } from './components/FilterBar';
 import { LandSection } from './components/LandSection';
@@ -183,7 +199,7 @@ export default function App() {
             getInfo={getInfo}
             onToggleStar={starred.toggle}
             onToggleVisited={visited.toggle}
-            onSwap={starred.swap}
+            onReorder={starred.reorderSubset}
           />
         ) : (
           <>
@@ -220,7 +236,7 @@ interface StarredViewProps {
   getInfo: (name: string) => LiveInfo | undefined;
   onToggleStar: (id: number) => void;
   onToggleVisited: (id: number) => void;
-  onSwap: (a: string | number, b: string | number) => void;
+  onReorder: (newOrder: string[]) => void;
 }
 
 function StarredView({
@@ -229,8 +245,27 @@ function StarredView({
   getInfo,
   onToggleStar,
   onToggleVisited,
-  onSwap,
+  onReorder,
 }: StarredViewProps) {
+  // Long-press on touch (250 ms) starts a drag; quick taps still fire the
+  // star / visited buttons because dnd-kit only activates after the delay.
+  // Pointer sensor (mouse / trackpad) needs the cursor to move 8 px first.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
+
+  const ids = items.map((i) => String(i.ride.id));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    onReorder(arrayMove(ids, oldIndex, newIndex));
+  };
+
   if (items.length === 0) {
     return (
       <div className="mt-6 text-center text-sm text-wdw-mute">
@@ -238,34 +273,71 @@ function StarredView({
       </div>
     );
   }
+
   return (
     <section className="mb-3 overflow-hidden rounded-xl bg-wdw-card ring-1 ring-wdw-line/60">
       <div className="flex items-center justify-between px-3 py-2">
         <span className="text-sm font-semibold uppercase tracking-wide text-wdw-mute">
           Your Plan
         </span>
-        <span className="text-xs text-wdw-mute">{items.length} · use ▲▼ to reorder</span>
+        <span className="text-xs text-wdw-mute">{items.length} · long-press a row to drag</span>
       </div>
-      <ul>
-        {items.map((item, i) => {
-          const prev = items[i - 1]?.ride.id;
-          const next = items[i + 1]?.ride.id;
-          return (
-            <AttractionRow
-              key={item.ride.id}
-              ride={item.ride}
-              starred={true}
-              visited={visited(item.ride.id)}
-              info={getInfo(item.ride.name)}
-              landName={item.landName}
-              onMoveUp={prev !== undefined ? () => onSwap(item.ride.id, prev) : undefined}
-              onMoveDown={next !== undefined ? () => onSwap(item.ride.id, next) : undefined}
-              onToggleStar={() => onToggleStar(item.ride.id)}
-              onToggleVisited={() => onToggleVisited(item.ride.id)}
-            />
-          );
-        })}
-      </ul>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          <ul>
+            {items.map((item) => (
+              <SortableStarredRow
+                key={item.ride.id}
+                item={item}
+                visited={visited(item.ride.id)}
+                info={getInfo(item.ride.name)}
+                onToggleStar={() => onToggleStar(item.ride.id)}
+                onToggleVisited={() => onToggleVisited(item.ride.id)}
+              />
+            ))}
+          </ul>
+        </SortableContext>
+      </DndContext>
     </section>
+  );
+}
+
+interface SortableStarredRowProps {
+  item: { ride: Ride; landName: string };
+  visited: boolean;
+  info: LiveInfo | undefined;
+  onToggleStar: () => void;
+  onToggleVisited: () => void;
+}
+
+function SortableStarredRow({
+  item,
+  visited,
+  info,
+  onToggleStar,
+  onToggleVisited,
+}: SortableStarredRowProps) {
+  const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({
+    id: String(item.ride.id),
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+  };
+  return (
+    <AttractionRow
+      ride={item.ride}
+      starred
+      visited={visited}
+      info={info}
+      landName={item.landName}
+      outerRef={setNodeRef}
+      outerStyle={style}
+      outerProps={{ ...attributes, ...listeners }}
+      isDragging={isDragging}
+      onToggleStar={onToggleStar}
+      onToggleVisited={onToggleVisited}
+    />
   );
 }

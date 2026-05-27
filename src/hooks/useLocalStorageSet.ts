@@ -19,8 +19,11 @@ export interface LocalStorageSet {
   // Ordered list of IDs. For starred items this order is the user's
   // preference for visit priority and is preserved across renders.
   list: string[];
-  // Swap two IDs' positions in the ordered list. No-op if either is missing.
-  swap: (a: string | number, b: string | number) => void;
+  // Replace the positions of items in `newOrder` with `newOrder`'s ordering,
+  // keeping any IDs not present in `newOrder` exactly where they were. Used
+  // by the drag-and-drop reorder UI which only reorders the currently
+  // displayed subset (e.g. one park at a time).
+  reorderSubset: (newOrder: string[]) => void;
 }
 
 export function useLocalStorageSet(key: string): LocalStorageSet {
@@ -53,22 +56,23 @@ export function useLocalStorageSet(key: string): LocalStorageSet {
 
   const clear = useCallback(() => setList([]), []);
 
-  const swap = useCallback((a: string | number, b: string | number) => {
-    const ak = String(a);
-    const bk = String(b);
-    if (ak === bk) return;
+  const reorderSubset = useCallback((newOrder: string[]) => {
     setList((prev) => {
-      const ai = prev.indexOf(ak);
-      const bi = prev.indexOf(bk);
-      if (ai === -1 || bi === -1) return prev;
+      const subset = new Set(newOrder);
+      const positions: number[] = [];
+      prev.forEach((id, idx) => {
+        if (subset.has(id)) positions.push(idx);
+      });
+      if (positions.length !== newOrder.length) return prev;
       const next = [...prev];
-      next[ai] = bk;
-      next[bi] = ak;
+      positions.forEach((pos, i) => {
+        next[pos] = newOrder[i];
+      });
       return next;
     });
   }, []);
 
-  return { has, toggle, clear, size: list.length, list, swap };
+  return { has, toggle, clear, size: list.length, list, reorderSubset };
 }
 
 export function useLocalStorageString(key: string, fallback: string): [string, (v: string) => void] {
