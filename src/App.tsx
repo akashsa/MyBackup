@@ -4,12 +4,12 @@ import { FilterBar, type Filter } from './components/FilterBar';
 import { LandSection } from './components/LandSection';
 import { SearchBar } from './components/SearchBar';
 import { useLocalStorageSet, useLocalStorageString } from './hooks/useLocalStorageSet';
-import { useWaitTimes } from './hooks/useWaitTimes';
-import { DEFAULT_PARK_ID, WDW_PARKS } from './parks';
+import { useLiveData } from './hooks/useLiveData';
+import { DEFAULT_PARK_ID, WDW_PARKS, getPark } from './parks';
 import { getAttractions } from './data/wdwAttractions';
-import { lookupWait, type WaitMap } from './api/queueTimes';
+import { lookupLive, type LiveMap } from './api/themeparks';
 import { normalize } from './utils/normalize';
-import type { Land, Ride, WaitInfo } from './types';
+import type { Land, LiveInfo, Ride } from './types';
 
 const MATCHES_LAND_ID = -100;
 
@@ -18,7 +18,7 @@ function applyFilters(
   filters: Set<Filter>,
   starred: (id: number) => boolean,
   visited: (id: number) => boolean,
-  getWait: (name: string) => WaitInfo | undefined,
+  getInfo: (name: string) => LiveInfo | undefined,
 ): Land[] {
   if (filters.size === 0) return lands;
   return lands
@@ -28,8 +28,9 @@ function applyFilters(
         if (filters.has('starred') && !starred(r.id)) return false;
         if (filters.has('unvisited') && visited(r.id)) return false;
         if (filters.has('open')) {
-          const info = getWait(r.name);
-          if (info && !info.is_open) return false;
+          const info = getInfo(r.name);
+          // Only hide if we know it's closed. Unknown stays visible.
+          if (info && info.status !== 'OPERATING' && !info.showtimes?.length) return false;
         }
         return true;
       }),
@@ -64,16 +65,17 @@ export default function App() {
     });
   };
 
-  const { byName, error, lastUpdated, loading, refresh } = useWaitTimes(parkId);
-  const getWait = useCallback(
-    (name: string) => lookupWait(name, byName as WaitMap),
+  const currentPark = getPark(parkId) ?? WDW_PARKS[0];
+  const { byName, error, lastUpdated, loading, refresh } = useLiveData(currentPark.themeparksId);
+  const getInfo = useCallback(
+    (name: string) => lookupLive(name, byName as LiveMap),
     [byName],
   );
 
   const lands = useMemo(() => getAttractions(parkId), [parkId]);
   const filteredLands = useMemo(
-    () => applyFilters(lands, filters, starred.has, visited.has, getWait),
-    [lands, filters, starred, visited, getWait],
+    () => applyFilters(lands, filters, starred.has, visited.has, getInfo),
+    [lands, filters, starred, visited, getInfo],
   );
 
   const normalizedQuery = normalize(query);
@@ -101,24 +103,21 @@ export default function App() {
     return matches.length > 0 ? [matchesSection, ...remainder] : remainder;
   }, [filteredLands, normalizedQuery]);
 
-  const currentPark = WDW_PARKS.find((p) => p.id === parkId);
-  const hasWaitData = byName.size > 0;
+  const hasLiveData = byName.size > 0;
 
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col">
       <header className="sticky top-0 z-10 bg-wdw-bg/95 px-3 pb-3 pt-3 backdrop-blur">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h1 className="truncate text-lg font-bold tracking-tight">
-            {currentPark?.name ?? 'WDW Attractions'}
-          </h1>
+          <h1 className="truncate text-lg font-bold tracking-tight">{currentPark.name}</h1>
           <button
             type="button"
             onClick={refresh}
             disabled={loading}
             className="shrink-0 rounded-md px-2 py-1 text-xs text-wdw-mute hover:text-wdw-ink disabled:opacity-50"
-            title="Refresh wait times"
+            title="Refresh live data"
           >
-            {loading ? 'Refreshing…' : `${hasWaitData ? formatTime(lastUpdated) : 'Wait times'} ↻`}
+            {loading ? 'Refreshing…' : `${hasLiveData ? formatTime(lastUpdated) : 'Live data'} ↻`}
           </button>
         </div>
         <ParkSwitcher selectedId={parkId} onSelect={setParkId} />
@@ -128,9 +127,9 @@ export default function App() {
         <div className="mt-3">
           <FilterBar filters={filters} onToggle={toggleFilter} />
         </div>
-        {error && !hasWaitData && (
+        {error && !hasLiveData && (
           <div className="mt-3 rounded-md bg-amber-500/15 px-3 py-2 text-xs text-amber-200 ring-1 ring-amber-400/30">
-            <p>Couldn't load live wait times — showing attractions without them.</p>
+            <p>Couldn't load live data — showing attractions without wait times / showtimes.</p>
             <p className="mt-1 font-mono text-[10px] text-amber-200/70 break-all">{error}</p>
           </div>
         )}
@@ -149,7 +148,7 @@ export default function App() {
             land={land}
             isStarred={starred.has}
             isVisited={visited.has}
-            getWait={getWait}
+            getInfo={getInfo}
             onToggleStar={starred.toggle}
             onToggleVisited={visited.toggle}
           />

@@ -1,4 +1,5 @@
 import type { Land } from '../types';
+import { getActiveEvents } from './seasonalEvents';
 
 // Curated list of major attractions per WDW park.
 // Ride IDs are stable so starred/visited state survives data updates.
@@ -244,6 +245,11 @@ const ATTRACTIONS: Record<number, Land[]> = {
   ],
 };
 
-export function getAttractions(parkId: number): Land[] {
-  return ATTRACTIONS[parkId] ?? [];
+export function getAttractions(parkId: number, today: Date = new Date()): Land[] {
+  const baseLands = ATTRACTIONS[parkId] ?? [];
+  const events = getActiveEvents(parkId, today);
+  if (events.length === 0) return baseLands;
+  return baseLands.map((land) =>
+    land.name === 'Shows & Events' ? { ...land, rides: [...events, ...land.rides] } : land,
+  );
 }

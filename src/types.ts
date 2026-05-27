@@ -9,7 +9,13 @@ export interface Land {
   rides: Ride[];
 }
 
-export interface WaitInfo {
-  wait_time: number;
-  is_open: boolean;
+export interface Showtime {
+  startTime: string;
+  endTime: string;
+}
+
+export interface LiveInfo {
+  status: 'OPERATING' | 'CLOSED' | 'DOWN' | 'REFURBISHMENT' | string;
+  waitTime?: number;
+  showtimes?: Showtime[];
 }

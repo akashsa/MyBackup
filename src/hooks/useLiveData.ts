@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchWaitMap, type WaitMap } from '../api/queueTimes';
+import { fetchLiveMap, type LiveMap } from '../api/themeparks';
 
 const POLL_MS = 60_000;
 
-export interface WaitTimesState {
-  byName: WaitMap;
+export interface LiveState {
+  byName: LiveMap;
   loading: boolean;
   error: string | null;
   lastUpdated: Date | null;
   refresh: () => void;
 }
 
-export function useWaitTimes(parkId: number): WaitTimesState {
-  const [byName, setByName] = useState<WaitMap>(new Map());
+export function useLiveData(themeparksId: string): LiveState {
+  const [byName, setByName] = useState<LiveMap>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -24,7 +24,7 @@ export function useWaitTimes(parkId: number): WaitTimesState {
     abortRef.current = ctrl;
     setLoading(true);
     try {
-      const map = await fetchWaitMap(parkId, ctrl.signal);
+      const map = await fetchLiveMap(themeparksId, ctrl.signal);
       if (ctrl.signal.aborted) return;
       setByName(map);
       setError(null);
@@ -35,7 +35,7 @@ export function useWaitTimes(parkId: number): WaitTimesState {
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
-  }, [parkId]);
+  }, [themeparksId]);
 
   useEffect(() => {
     setByName(new Map());

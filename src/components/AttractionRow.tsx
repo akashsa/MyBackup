@@ -1,23 +1,40 @@
-import type { Ride, WaitInfo } from '../types';
-import { WaitBadge } from './WaitBadge';
+import type { LiveInfo, Ride } from '../types';
+import { LiveBadge } from './LiveBadge';
 
 interface Props {
   ride: Ride;
   starred: boolean;
   visited: boolean;
-  waitInfo?: WaitInfo;
+  info?: LiveInfo;
   onToggleStar: () => void;
   onToggleVisited: () => void;
+}
+
+function formatShowtime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function showtimesLine(info: LiveInfo | undefined, now: number): { text: string; upcoming: boolean } | null {
+  if (!info?.showtimes || info.showtimes.length === 0) return null;
+  const upcoming = info.showtimes.filter((s) => new Date(s.startTime).getTime() > now);
+  if (upcoming.length > 0) {
+    return { text: upcoming.map((s) => formatShowtime(s.startTime)).join(' · '), upcoming: true };
+  }
+  const last = info.showtimes[info.showtimes.length - 1];
+  return { text: `Last show: ${formatShowtime(last.startTime)}`, upcoming: false };
 }
 
 export function AttractionRow({
   ride,
   starred,
   visited,
-  waitInfo,
+  info,
   onToggleStar,
   onToggleVisited,
 }: Props) {
+  const showLine = showtimesLine(info, Date.now());
+
   return (
     <li className="flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0">
       <button
@@ -44,9 +61,18 @@ export function AttractionRow({
         >
           {ride.name}
         </p>
+        {showLine && (
+          <p
+            className={`mt-0.5 truncate text-[11px] ${
+              showLine.upcoming ? 'text-sky-300' : 'text-wdw-mute'
+            }`}
+          >
+            {showLine.text}
+          </p>
+        )}
       </button>
 
-      {waitInfo && <WaitBadge info={waitInfo} />}
+      {info && <LiveBadge info={info} />}
     </li>
   );
 }

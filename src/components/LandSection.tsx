@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import type { Land, WaitInfo } from '../types';
+import type { Land, LiveInfo } from '../types';
 import { AttractionRow } from './AttractionRow';
 
 interface Props {
   land: Land;
   isStarred: (id: number) => boolean;
   isVisited: (id: number) => boolean;
-  getWait: (name: string) => WaitInfo | undefined;
+  getInfo: (name: string) => LiveInfo | undefined;
   onToggleStar: (id: number) => void;
   onToggleVisited: (id: number) => void;
 }
@@ -15,7 +15,7 @@ export function LandSection({
   land,
   isStarred,
   isVisited,
-  getWait,
+  getInfo,
   onToggleStar,
   onToggleVisited,
 }: Props) {
@@ -45,7 +45,7 @@ export function LandSection({
               ride={ride}
               starred={isStarred(ride.id)}
               visited={isVisited(ride.id)}
-              waitInfo={getWait(ride.name)}
+              info={getInfo(ride.name)}
               onToggleStar={() => onToggleStar(ride.id)}
               onToggleVisited={() => onToggleVisited(ride.id)}
             />
