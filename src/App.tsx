@@ -10,6 +10,10 @@ import type { Land, Ride } from './types';
 
 const MATCHES_LAND_ID = -100;
 
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 function applyFilters(
   lands: Land[],
   filters: Set<Filter>,
@@ -57,14 +61,14 @@ export default function App() {
     [lands, filters, starred, visited],
   );
 
-  const trimmedQuery = query.trim().toLowerCase();
+  const normalizedQuery = normalize(query);
   const sectionsToRender = useMemo<Land[]>(() => {
-    if (!trimmedQuery) return filteredLands;
+    if (!normalizedQuery) return filteredLands;
 
     const matches: Ride[] = [];
     for (const land of filteredLands) {
       for (const ride of land.rides) {
-        if (ride.name.toLowerCase().includes(trimmedQuery)) matches.push(ride);
+        if (normalize(ride.name).includes(normalizedQuery)) matches.push(ride);
       }
     }
     const matchedIds = new Set(matches.map((r) => r.id));
@@ -80,7 +84,7 @@ export default function App() {
     };
 
     return matches.length > 0 ? [matchesSection, ...remainder] : remainder;
-  }, [filteredLands, trimmedQuery]);
+  }, [filteredLands, normalizedQuery]);
 
   const currentPark = WDW_PARKS.find((p) => p.id === parkId);
 
@@ -102,7 +106,7 @@ export default function App() {
       <main className="px-3 pb-8">
         {sectionsToRender.length === 0 && (
           <div className="mt-6 text-center text-sm text-wdw-mute">
-            {trimmedQuery ? 'No attractions match your search.' : 'No attractions match your filters.'}
+            {normalizedQuery ? 'No attractions match your search.' : 'No attractions match your filters.'}
           </div>
         )}
 

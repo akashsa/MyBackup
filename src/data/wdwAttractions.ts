@@ -121,6 +121,7 @@ const ATTRACTIONS: Record<number, Land[]> = {
       rides: [
         { id: 7201, name: 'Star Tours – The Adventures Continue' },
         { id: 7202, name: 'Indiana Jones Epic Stunt Spectacular!' },
+        { id: 7203, name: 'For the First Time in Forever: A Frozen Sing-Along Celebration' },
       ],
     },
     {
