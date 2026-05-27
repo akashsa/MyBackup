@@ -63,6 +63,17 @@ const ATTRACTIONS: Record<number, Land[]> = {
         { id: 6508, name: 'TRON Lightcycle / Run' },
       ],
     },
+    {
+      id: 9,
+      name: 'Shows & Events',
+      rides: [
+        { id: 6901, name: 'Happily Ever After' },
+        { id: 6902, name: 'Festival of Fantasy Parade' },
+        { id: 6903, name: "Mickey's Magical Friendship Faire" },
+        { id: 6904, name: 'Let the Magic Begin' },
+        { id: 6905, name: 'Disney Adventure Friends Cavalcade' },
+      ],
+    },
   ],
 
   // EPCOT
@@ -101,6 +112,15 @@ const ATTRACTIONS: Record<number, Land[]> = {
         { id: 5401, name: 'Frozen Ever After' },
         { id: 5402, name: 'Gran Fiesta Tour Starring The Three Caballeros' },
         { id: 5403, name: "Remy's Ratatouille Adventure" },
+      ],
+    },
+    {
+      id: 9,
+      name: 'Shows & Events',
+      rides: [
+        { id: 5901, name: 'Luminous: The Symphony of Us' },
+        { id: 5902, name: 'Voices of Liberty' },
+        { id: 5903, name: 'The American Adventure' },
       ],
     },
   ],
@@ -159,6 +179,16 @@ const ATTRACTIONS: Record<number, Land[]> = {
         { id: 7702, name: 'Disney Junior Play & Dance!' },
       ],
     },
+    {
+      id: 9,
+      name: 'Shows & Events',
+      rides: [
+        { id: 7901, name: 'Fantasmic!' },
+        { id: 7902, name: 'Beauty and the Beast – Live on Stage' },
+        { id: 7903, name: 'Wonderful World of Animation' },
+        { id: 7904, name: "Lightning McQueen's Racing Academy" },
+      ],
+    },
   ],
 
   // Animal Kingdom
@@ -205,6 +235,11 @@ const ATTRACTIONS: Record<number, Land[]> = {
       id: 6,
       name: "Rafiki's Planet Watch",
       rides: [{ id: 8601, name: 'Conservation Station' }],
+    },
+    {
+      id: 9,
+      name: 'Shows & Events',
+      rides: [{ id: 8901, name: 'Finding Nemo: The Big Blue and Beyond' }],
     },
   ],
 };
