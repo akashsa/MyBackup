@@ -10,12 +10,14 @@ interface Props {
   // When set, shown as small caption under the ride name. Useful in flat
   // views (e.g. starred mode) where the parent land header is not visible.
   landName?: string;
-  // Drag-and-drop integration. The caller can pass dnd-kit's setNodeRef,
-  // transform style, and combined attributes + listeners to make this row
-  // sortable without leaking dnd-kit types into the row.
+  // Drag-and-drop integration. setNodeRef goes on the <li>, attributes on
+  // the <li> too (a11y), and listeners on the dedicated handle button — that
+  // way dragging is constrained to the handle and the rest of the row scrolls
+  // normally. Nothing dnd-kit-specific leaks into the row's types.
   outerRef?: Ref<HTMLLIElement>;
   outerStyle?: CSSProperties;
   outerProps?: HTMLAttributes<HTMLLIElement>;
+  handleProps?: HTMLAttributes<HTMLButtonElement>;
   isDragging?: boolean;
   onToggleStar: () => void;
   onToggleVisited: () => void;
@@ -45,6 +47,7 @@ export function AttractionRow({
   outerRef,
   outerStyle,
   outerProps,
+  handleProps,
   isDragging,
   onToggleStar,
   onToggleVisited,
@@ -52,7 +55,6 @@ export function AttractionRow({
   const effectiveInfo: LiveInfo | undefined =
     info ?? (ride.staticStatus ? { status: ride.staticStatus } : undefined);
   const showLine = showtimesLine(effectiveInfo, Date.now());
-  const sortable = outerRef !== undefined || outerProps !== undefined;
 
   return (
     <li
@@ -60,18 +62,18 @@ export function AttractionRow({
       style={outerStyle}
       {...outerProps}
       className={`flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0 ${
-        sortable ? 'select-none' : ''
+        handleProps ? 'select-none' : ''
       } ${isDragging ? 'bg-wdw-line/40 shadow-lg ring-1 ring-wdw-accent/40' : ''}`}
     >
-      {sortable && (
-        <span
-          aria-hidden="true"
-          className="flex h-9 w-5 shrink-0 flex-col items-center justify-center text-wdw-mute"
-          title="Drag to reorder"
+      {handleProps && (
+        <button
+          type="button"
+          {...handleProps}
+          aria-label="Drag to reorder"
+          className="flex h-11 w-9 shrink-0 cursor-grab touch-none flex-col items-center justify-center rounded text-base leading-none text-wdw-mute hover:bg-white/5 hover:text-wdw-ink active:cursor-grabbing active:bg-white/10"
         >
-          <span className="leading-none">⋮</span>
-          <span className="leading-none">⋮</span>
-        </span>
+          <span className="leading-none">⋮⋮</span>
+        </button>
       )}
 
       <button

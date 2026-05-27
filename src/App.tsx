@@ -247,13 +247,12 @@ function StarredView({
   onToggleVisited,
   onReorder,
 }: StarredViewProps) {
-  // Long-press on touch (600 ms) starts a drag; quick taps and scroll
-  // gestures still work because the row no longer claims touch-action, and
-  // any movement above the tolerance during the delay cancels activation.
-  // Pointer sensor (mouse / trackpad) needs the cursor to move 8 px first.
+  // Drag is initiated only from the dedicated handle (touch-action: none),
+  // so the rest of the row scrolls naturally. A small TouchSensor delay
+  // keeps incidental contact on the handle from triggering a drag.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 600, tolerance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   );
 
   const ids = items.map((i) => String(i.ride.id));
@@ -281,7 +280,7 @@ function StarredView({
         <span className="text-sm font-semibold uppercase tracking-wide text-wdw-mute">
           Your Plan
         </span>
-        <span className="text-xs text-wdw-mute">{items.length} · press &amp; hold to drag</span>
+        <span className="text-xs text-wdw-mute">{items.length} · drag ⋮⋮ to reorder</span>
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
@@ -335,7 +334,8 @@ function SortableStarredRow({
       landName={item.landName}
       outerRef={setNodeRef}
       outerStyle={style}
-      outerProps={{ ...attributes, ...listeners }}
+      outerProps={attributes}
+      handleProps={listeners}
       isDragging={isDragging}
       onToggleStar={onToggleStar}
       onToggleVisited={onToggleVisited}
