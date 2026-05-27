@@ -134,6 +134,7 @@ const ATTRACTIONS: Record<number, Land[]> = {
       rides: [
         { id: 7101, name: 'The Twilight Zone Tower of Terror' },
         { id: 7102, name: "Rock 'n' Roller Coaster Starring The Muppets" },
+        { id: 7103, name: 'Disney Villains: Unfairly Ever After' },
         { id: 7902, name: 'Beauty and the Beast – Live on Stage' },
         { id: 7901, name: 'Fantasmic!' },
       ],
@@ -180,6 +181,7 @@ const ATTRACTIONS: Record<number, Land[]> = {
       rides: [
         { id: 7701, name: 'Walt Disney Presents' },
         { id: 7702, name: 'Disney Junior Play & Dance!' },
+        { id: 7703, name: 'The Little Mermaid – A Musical Adventure' },
       ],
     },
   ],
