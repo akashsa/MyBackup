@@ -133,7 +133,7 @@ const ATTRACTIONS: Record<number, Land[]> = {
       name: 'Sunset Boulevard',
       rides: [
         { id: 7101, name: 'The Twilight Zone Tower of Terror' },
-        { id: 7102, name: "Rock 'n' Roller Coaster Starring Aerosmith", staticStatus: 'REFURBISHMENT' },
+        { id: 7102, name: "Rock 'n' Roller Coaster Starring The Muppets" },
         { id: 7902, name: 'Beauty and the Beast – Live on Stage' },
         { id: 7901, name: 'Fantasmic!' },
       ],
