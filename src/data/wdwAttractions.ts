@@ -1,11 +1,23 @@
 import type { Land } from '../types';
 import { getActiveEvents } from './seasonalEvents';
 
-// Curated list of major attractions per WDW park.
-// Ride IDs are stable so starred/visited state survives data updates.
+// Curated list of attractions, shows, and entertainment per WDW park, grouped
+// by the geographic land each lives in. Ride IDs are stable so starred /
+// visited state persists across reorganizations.
 const ATTRACTIONS: Record<number, Land[]> = {
   // Magic Kingdom
   6: [
+    {
+      id: 10,
+      name: 'Main Street, U.S.A.',
+      rides: [
+        { id: 6901, name: 'Happily Ever After' },
+        { id: 6902, name: 'Festival of Fantasy Parade' },
+        { id: 6903, name: "Mickey's Magical Friendship Faire" },
+        { id: 6904, name: 'Let the Magic Begin' },
+        { id: 6905, name: 'Disney Adventure Friends Cavalcade' },
+      ],
+    },
     {
       id: 1,
       name: 'Adventureland',
@@ -64,17 +76,6 @@ const ATTRACTIONS: Record<number, Land[]> = {
         { id: 6508, name: 'TRON Lightcycle / Run' },
       ],
     },
-    {
-      id: 9,
-      name: 'Shows & Events',
-      rides: [
-        { id: 6901, name: 'Happily Ever After' },
-        { id: 6902, name: 'Festival of Fantasy Parade' },
-        { id: 6903, name: "Mickey's Magical Friendship Faire" },
-        { id: 6904, name: 'Let the Magic Begin' },
-        { id: 6905, name: 'Disney Adventure Friends Cavalcade' },
-      ],
-    },
   ],
 
   // EPCOT
@@ -113,15 +114,9 @@ const ATTRACTIONS: Record<number, Land[]> = {
         { id: 5401, name: 'Frozen Ever After' },
         { id: 5402, name: 'Gran Fiesta Tour Starring The Three Caballeros' },
         { id: 5403, name: "Remy's Ratatouille Adventure" },
-      ],
-    },
-    {
-      id: 9,
-      name: 'Shows & Events',
-      rides: [
-        { id: 5901, name: 'Luminous: The Symphony of Us' },
-        { id: 5902, name: 'Voices of Liberty' },
         { id: 5903, name: 'The American Adventure' },
+        { id: 5902, name: 'Voices of Liberty' },
+        { id: 5901, name: 'Luminous: The Symphony of Us' },
       ],
     },
   ],
@@ -129,11 +124,19 @@ const ATTRACTIONS: Record<number, Land[]> = {
   // Hollywood Studios
   7: [
     {
+      id: 10,
+      name: 'Hollywood Boulevard',
+      rides: [{ id: 7903, name: 'Wonderful World of Animation' }],
+    },
+    {
       id: 1,
       name: 'Sunset Boulevard',
       rides: [
         { id: 7101, name: 'The Twilight Zone Tower of Terror' },
         { id: 7102, name: "Rock 'n' Roller Coaster Starring Aerosmith" },
+        { id: 7902, name: 'Beauty and the Beast – Live on Stage' },
+        { id: 7904, name: "Lightning McQueen's Racing Academy" },
+        { id: 7901, name: 'Fantasmic!' },
       ],
     },
     {
@@ -180,16 +183,6 @@ const ATTRACTIONS: Record<number, Land[]> = {
         { id: 7702, name: 'Disney Junior Play & Dance!' },
       ],
     },
-    {
-      id: 9,
-      name: 'Shows & Events',
-      rides: [
-        { id: 7901, name: 'Fantasmic!' },
-        { id: 7902, name: 'Beauty and the Beast – Live on Stage' },
-        { id: 7903, name: 'Wonderful World of Animation' },
-        { id: 7904, name: "Lightning McQueen's Racing Academy" },
-      ],
-    },
   ],
 
   // Animal Kingdom
@@ -225,6 +218,7 @@ const ATTRACTIONS: Record<number, Land[]> = {
       rides: [
         { id: 8401, name: 'DINOSAUR' },
         { id: 8402, name: 'TriceraTop Spin' },
+        { id: 8901, name: 'Finding Nemo: The Big Blue and Beyond' },
       ],
     },
     {
@@ -237,19 +231,16 @@ const ATTRACTIONS: Record<number, Land[]> = {
       name: "Rafiki's Planet Watch",
       rides: [{ id: 8601, name: 'Conservation Station' }],
     },
-    {
-      id: 9,
-      name: 'Shows & Events',
-      rides: [{ id: 8901, name: 'Finding Nemo: The Big Blue and Beyond' }],
-    },
   ],
 };
+
+// Park-wide seasonal events don't live in any one land, so they appear in a
+// dedicated "Now Happening" land at the top of the park when they're in season.
+const NOW_HAPPENING_LAND_ID = 999;
 
 export function getAttractions(parkId: number, today: Date = new Date()): Land[] {
   const baseLands = ATTRACTIONS[parkId] ?? [];
   const events = getActiveEvents(parkId, today);
   if (events.length === 0) return baseLands;
-  return baseLands.map((land) =>
-    land.name === 'Shows & Events' ? { ...land, rides: [...events, ...land.rides] } : land,
-  );
+  return [{ id: NOW_HAPPENING_LAND_ID, name: 'Now Happening', rides: events }, ...baseLands];
 }
