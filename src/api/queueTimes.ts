@@ -23,7 +23,6 @@ const ORPHAN_LAND_NAME = 'Other';
 export async function fetchQueueTimes(parkId: number, signal?: AbortSignal): Promise<Land[]> {
   const res = await fetch(`https://queue-times.com/parks/${parkId}/queue_times.json`, {
     signal,
-    headers: { Accept: 'application/json' },
   });
   if (!res.ok) {
     throw new Error(`Queue-times responded ${res.status}`);

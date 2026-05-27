@@ -29,12 +29,10 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: `${BASE}index.html`,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/queue-times\.com\/parks\/.*\/queue_times\.json$/,
-            handler: 'NetworkOnly',
-          },
-        ],
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        // Don't intercept cross-origin API calls — let them go straight to the network.
       },
     }),
   ],
