@@ -1,5 +1,4 @@
-import type { Ride } from '../api/queueTimes';
-import { WaitBadge } from './WaitBadge';
+import type { Ride } from '../types';
 
 interface Props {
   ride: Ride;
@@ -11,7 +10,7 @@ interface Props {
 
 export function AttractionRow({ ride, starred, visited, onToggleStar, onToggleVisited }: Props) {
   return (
-    <li className="flex items-center gap-3 border-b border-wdw-line/60 px-3 py-3 last:border-b-0">
+    <li className="flex items-center gap-2 border-b border-wdw-line/60 px-3 py-3 last:border-b-0">
       <button
         type="button"
         aria-label={starred ? 'Unstar attraction' : 'Star attraction'}
@@ -22,27 +21,30 @@ export function AttractionRow({ ride, starred, visited, onToggleStar, onToggleVi
         <span className={starred ? 'text-wdw-accent' : 'text-slate-500'}>{starred ? '★' : '☆'}</span>
       </button>
 
-      <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={onToggleVisited}
+        aria-pressed={visited}
+        aria-label={visited ? 'Mark as not visited' : 'Mark as visited'}
+        className="min-w-0 flex-1 text-left"
+      >
         <p
-          className={`truncate text-sm font-medium ${visited ? 'text-slate-500 line-through' : 'text-wdw-ink'}`}
+          className={`truncate text-sm font-medium ${
+            visited ? 'text-slate-500 line-through' : 'text-wdw-ink'
+          }`}
         >
           {ride.name}
         </p>
-      </div>
+      </button>
 
-      <WaitBadge waitTime={ride.wait_time} isOpen={ride.is_open} />
-
-      <button
-        type="button"
-        aria-label={visited ? 'Mark as not visited' : 'Mark as visited'}
-        aria-pressed={visited}
-        onClick={onToggleVisited}
-        className={`flex h-9 w-9 items-center justify-center rounded-full text-base transition-colors ${
-          visited ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-500 hover:bg-white/5 active:bg-white/10'
+      <span
+        aria-hidden="true"
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${
+          visited ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-600'
         }`}
       >
         ✓
-      </button>
+      </span>
     </li>
   );
 }

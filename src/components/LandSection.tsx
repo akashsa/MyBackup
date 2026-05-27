@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Land } from '../api/queueTimes';
+import type { Land } from '../types';
 import { AttractionRow } from './AttractionRow';
 
 interface Props {

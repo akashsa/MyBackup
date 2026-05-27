@@ -1,4 +1,4 @@
-export type Filter = 'all' | 'starred' | 'unvisited' | 'open';
+export type Filter = 'starred' | 'unvisited';
 
 interface Props {
   filters: Set<Filter>;
@@ -8,7 +8,6 @@ interface Props {
 const CHIPS: { id: Filter; label: string }[] = [
   { id: 'starred', label: '★ Starred' },
   { id: 'unvisited', label: 'Unvisited' },
-  { id: 'open', label: 'Open now' },
 ];
 
 export function FilterBar({ filters, onToggle }: Props) {
