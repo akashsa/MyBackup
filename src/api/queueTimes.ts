@@ -14,18 +14,50 @@ interface RawResponse {
 
 export type WaitMap = Map<string, WaitInfo>;
 
-// Public CORS proxy. queue-times.com claims to send Access-Control-Allow-Origin
-// but the request fails from GitHub Pages in practice (likely Safari's strict
-// CORS handling). Routing through allorigins makes the response same-origin from
-// the browser's perspective. If allorigins gets flaky, swap to a Cloudflare
-// Worker we control.
-const PROXY = 'https://api.allorigins.win/raw?url=';
+// Public CORS proxies. queue-times.com fails direct from GitHub Pages (Safari
+// reports a generic "Load failed", almost certainly CORS). Each public proxy
+// has its own outages / rate limits, so we try them in order with a per-attempt
+// timeout. Long-term fix is a Cloudflare Worker we control.
+const PROXIES: Array<(url: string) => string> = [
+  (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+];
+
+const ATTEMPT_TIMEOUT_MS = 8000;
+
+async function fetchWithTimeout(url: string, outerSignal: AbortSignal | undefined): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ATTEMPT_TIMEOUT_MS);
+  const onOuterAbort = () => ctrl.abort();
+  outerSignal?.addEventListener('abort', onOuterAbort);
+  try {
+    return await fetch(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+    outerSignal?.removeEventListener('abort', onOuterAbort);
+  }
+}
+
+async function fetchTarget(target: string, signal?: AbortSignal): Promise<RawResponse> {
+  let lastError: unknown = new Error('No proxies configured');
+  for (const wrap of PROXIES) {
+    if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
+    try {
+      const res = await fetchWithTimeout(wrap(target), signal);
+      if (res.ok) return (await res.json()) as RawResponse;
+      lastError = new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      if (signal?.aborted) throw e;
+      lastError = e;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
 
 export async function fetchWaitMap(parkId: number, signal?: AbortSignal): Promise<WaitMap> {
   const target = `https://queue-times.com/parks/${parkId}/queue_times.json`;
-  const res = await fetch(`${PROXY}${encodeURIComponent(target)}`, { signal });
-  if (!res.ok) throw new Error(`proxy responded ${res.status}`);
-  const json = (await res.json()) as RawResponse;
+  const json = await fetchTarget(target, signal);
   const map: WaitMap = new Map();
   const ingest = (r: RawRide) => {
     if (typeof r?.name !== 'string') return;
