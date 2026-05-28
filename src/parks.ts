@@ -2,7 +2,10 @@ export interface Park {
   id: number;
   name: string;
   short: string;
-  themeparksId: string;
+  // Known themeparks.wiki UUID. Omitted for parks we resolve by name instead.
+  themeparksId?: string;
+  // Name fragment used to look up the themeparks.wiki UUID at runtime.
+  resolveName?: string;
 }
 
 export const WDW_PARKS: Park[] = [
@@ -29,6 +32,18 @@ export const WDW_PARKS: Park[] = [
     name: 'Animal Kingdom',
     short: 'AK',
     themeparksId: '1c84a229-8862-4648-9c71-378ddd2c7693',
+  },
+  {
+    id: 30,
+    name: 'Blizzard Beach',
+    short: 'BB',
+    resolveName: 'Blizzard Beach',
+  },
+  {
+    id: 31,
+    name: 'Typhoon Lagoon',
+    short: 'TL',
+    resolveName: 'Typhoon Lagoon',
   },
 ];
 

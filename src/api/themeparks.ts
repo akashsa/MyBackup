@@ -44,13 +44,13 @@ async function fetchWithTimeout(url: string, outerSignal: AbortSignal | undefine
   }
 }
 
-async function fetchTarget(target: string, signal?: AbortSignal): Promise<RawResponse> {
+async function fetchJson<T>(target: string, signal?: AbortSignal): Promise<T> {
   let lastError: unknown = new Error('No attempts configured');
   for (const wrap of ATTEMPTS) {
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
     try {
       const res = await fetchWithTimeout(wrap(target), signal);
-      if (res.ok) return (await res.json()) as RawResponse;
+      if (res.ok) return (await res.json()) as T;
       lastError = new Error(`HTTP ${res.status}`);
     } catch (e) {
       if (signal?.aborted) throw e;
@@ -62,7 +62,7 @@ async function fetchTarget(target: string, signal?: AbortSignal): Promise<RawRes
 
 export async function fetchLiveMap(themeparksId: string, signal?: AbortSignal): Promise<LiveMap> {
   const url = `https://api.themeparks.wiki/v1/entity/${themeparksId}/live`;
-  const json = await fetchTarget(url, signal);
+  const json = await fetchJson<RawResponse>(url, signal);
   const map: LiveMap = new Map();
   for (const item of json.liveData ?? []) {
     if (!item.name) continue;
@@ -91,4 +91,31 @@ export function lookupLive(name: string, map: LiveMap): LiveInfo | undefined {
     if (k.includes(key)) return v;
   }
   return undefined;
+}
+
+// Walt Disney World Resort destination on themeparks.wiki. Its children are
+// all the parks (theme + water), each with a stable UUID and name.
+const WDW_DESTINATION_ID = 'e957da41-3552-4cf6-b636-5babc5cbc4e5';
+
+interface RawChild {
+  id?: string;
+  name?: string;
+}
+
+interface RawChildrenResponse {
+  children?: RawChild[];
+}
+
+// Resolves a park's themeparks.wiki UUID by matching a name fragment against
+// the WDW destination's children. Used for parks whose UUID we don't hardcode
+// (the water parks), so we never have to guess an ID.
+export async function resolveParkId(
+  nameFragment: string,
+  signal?: AbortSignal,
+): Promise<string | undefined> {
+  const url = `https://api.themeparks.wiki/v1/entity/${WDW_DESTINATION_ID}/children`;
+  const json = await fetchJson<RawChildrenResponse>(url, signal);
+  const frag = normalize(nameFragment);
+  const found = (json.children ?? []).find((c) => c.name && normalize(c.name).includes(frag));
+  return found?.id;
 }

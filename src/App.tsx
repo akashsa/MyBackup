@@ -96,7 +96,7 @@ export default function App() {
   };
 
   const currentPark = getPark(parkId) ?? WDW_PARKS[0];
-  const { byName, error, lastUpdated, loading, refresh } = useLiveData(currentPark.themeparksId);
+  const { byName, error, lastUpdated, loading, refresh } = useLiveData(currentPark);
   const getInfo = useCallback(
     (name: string) => lookupLive(name, byName as LiveMap),
     [byName],

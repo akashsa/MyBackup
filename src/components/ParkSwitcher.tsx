@@ -21,15 +21,14 @@ export function ParkSwitcher({ selectedId, onSelect }: Props) {
             aria-selected={active}
             type="button"
             onClick={() => onSelect(park.id)}
-            className={`flex-1 rounded-lg px-2 py-2 text-xs font-semibold transition-colors ${
+            className={`flex-1 rounded-lg px-1 py-2 text-xs font-semibold transition-colors ${
               active
                 ? 'bg-slate-700 text-wdw-ink shadow-sm'
                 : 'text-wdw-mute hover:bg-white/5'
             }`}
             title={park.name}
           >
-            <span className="block sm:hidden">{park.short}</span>
-            <span className="hidden sm:block">{park.name}</span>
+            {park.short}
           </button>
         );
       })}

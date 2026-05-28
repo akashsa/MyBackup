@@ -233,6 +233,84 @@ const ATTRACTIONS: Record<number, Land[]> = {
       rides: [{ id: 8601, name: 'Conservation Station' }],
     },
   ],
+
+  // Blizzard Beach (water park)
+  30: [
+    {
+      id: 1,
+      name: 'Thrill Slides',
+      rides: [
+        { id: 30001, name: 'Summit Plummet' },
+        { id: 30002, name: 'Slush Gusher' },
+        { id: 30003, name: 'Downhill Double Dipper' },
+        { id: 30004, name: 'Toboggan Racers' },
+        { id: 30005, name: 'Snow Stormers' },
+      ],
+    },
+    {
+      id: 2,
+      name: 'Family Rafts & Tubes',
+      rides: [
+        { id: 30006, name: 'Teamboat Springs' },
+        { id: 30007, name: 'Runoff Rapids' },
+      ],
+    },
+    {
+      id: 3,
+      name: 'Pools & Rivers',
+      rides: [
+        { id: 30008, name: 'Melt-Away Bay' },
+        { id: 30009, name: 'Cross Country Creek' },
+      ],
+    },
+    {
+      id: 4,
+      name: 'Kids',
+      rides: [
+        { id: 30010, name: "Tike's Peak" },
+        { id: 30011, name: 'Ski Patrol Training Camp' },
+      ],
+    },
+  ],
+
+  // Typhoon Lagoon (water park)
+  31: [
+    {
+      id: 1,
+      name: 'Thrill Slides',
+      rides: [
+        { id: 31001, name: 'Humunga Kowabunga' },
+        { id: 31002, name: "Crush 'n' Gusher" },
+        { id: 31003, name: 'Storm Slides' },
+      ],
+    },
+    {
+      id: 2,
+      name: 'Family Rafts & Tubes',
+      rides: [
+        { id: 31004, name: 'Gangplank Falls' },
+        { id: 31005, name: 'Mayday Falls' },
+        { id: 31006, name: 'Keelhaul Falls' },
+        { id: 31007, name: 'Miss Adventure Falls' },
+      ],
+    },
+    {
+      id: 3,
+      name: 'Pools & Rivers',
+      rides: [
+        { id: 31008, name: 'Typhoon Lagoon Surf Pool' },
+        { id: 31009, name: 'Castaway Creek' },
+      ],
+    },
+    {
+      id: 4,
+      name: 'Kids',
+      rides: [
+        { id: 31010, name: 'Ketchakiddee Creek' },
+        { id: 31011, name: 'Bay Slides' },
+      ],
+    },
+  ],
 };
 
 // Park-wide seasonal events don't live in any one land, so they appear in a
