@@ -20,6 +20,7 @@ interface RawShowtime {
 
 interface RawLiveItem {
   name?: string;
+  entityType?: string;
   status?: string;
   queue?: { STANDBY?: { waitTime?: number | null } | null } | null;
   showtimes?: RawShowtime[];
@@ -74,6 +75,8 @@ export async function fetchLiveMap(themeparksId: string, signal?: AbortSignal): 
       status: item.status ?? 'CLOSED',
       waitTime: typeof waitTime === 'number' ? waitTime : undefined,
       showtimes: showtimes.length > 0 ? showtimes : undefined,
+      name: item.name,
+      entityType: item.entityType,
     });
   }
   return map;

@@ -21,4 +21,8 @@ export interface LiveInfo {
   status: 'OPERATING' | 'CLOSED' | 'DOWN' | 'REFURBISHMENT' | string;
   waitTime?: number;
   showtimes?: Showtime[];
+  // Original display name + entity type from the live feed. Used to surface
+  // attractions/shows that aren't in the curated static list.
+  name?: string;
+  entityType?: string;
 }

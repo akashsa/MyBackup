@@ -29,6 +29,35 @@ import { normalize } from './utils/normalize';
 import type { Land, LiveInfo, Ride } from './types';
 
 const MATCHES_LAND_ID = -100;
+const MORE_LAND_ID = 998;
+
+// Stable positive ID derived from a name, for live-discovered attractions that
+// aren't in the curated list. Offset far above curated IDs to avoid collisions.
+function hashId(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;
+  return 800000000 + (h >>> 0) % 100000000;
+}
+
+// Builds a "More" land from live-feed entries (attractions / shows only) that
+// no curated ride covers, so the list stays complete without manual curation.
+function buildMoreLand(lands: Land[], byName: LiveMap): Land | null {
+  if (byName.size === 0) return null;
+  const staticKeys: string[] = [];
+  for (const land of lands) for (const r of land.rides) staticKeys.push(normalize(r.name));
+  const covered = (liveKey: string) =>
+    staticKeys.some((sk) => sk === liveKey || (sk.length >= 6 && liveKey.includes(sk)));
+
+  const extras: Ride[] = [];
+  for (const [liveKey, info] of byName) {
+    if (info.entityType !== 'ATTRACTION' && info.entityType !== 'SHOW') continue;
+    if (!info.name || covered(liveKey)) continue;
+    extras.push({ id: hashId(liveKey), name: info.name });
+  }
+  if (extras.length === 0) return null;
+  extras.sort((a, b) => a.name.localeCompare(b.name));
+  return { id: MORE_LAND_ID, name: 'More', rides: extras };
+}
 
 function applyFilters(
   lands: Land[],
@@ -102,7 +131,11 @@ export default function App() {
     [byName],
   );
 
-  const lands = useMemo(() => getAttractions(parkId), [parkId]);
+  const lands = useMemo(() => {
+    const base = getAttractions(parkId);
+    const more = buildMoreLand(base, byName as LiveMap);
+    return more ? [...base, more] : base;
+  }, [parkId, byName]);
 
   const normalizedQuery = normalize(query);
   const isStarredView = filters.has('starred');
